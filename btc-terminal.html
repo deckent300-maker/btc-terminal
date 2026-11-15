@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC Terminal · Simulación sin servidor</title>
+<style>
+:root{--bg:#0A0A0B;--panel:#121214;--line:#26262A;--txt:#EDEDED;--mut:#8A8A90;--y:#FFCC00;--g:#00E676;--r:#FF3B30;--mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:13px;line-height:1.45}
+header{padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,10,11,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:5;padding-top:max(10px,env(safe-area-inset-top))}
+#hud{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-width:1500px;margin-left:auto;margin-right:auto}
+.hud-k{border:1px solid var(--line);padding:6px 8px;background:#0D0D0F;min-width:0}
+.hud-k small,.hud-dec small{display:block;color:var(--mut);font-size:9px;letter-spacing:.1em}
+.hud-k b{font-size:15px;white-space:nowrap}
+.hud-dec{grid-column:1/-1;border:2px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;transition:border-color .3s}
+#hud-dec-v{font-size:22px;font-weight:900}
+.hud-live{grid-column:1/-1;font-size:11px;color:var(--mut)}
+@media(max-width:600px){.price{font-size:18px}.hud-k b{font-size:13px}}
+.logo{font-weight:800;letter-spacing:.12em;color:var(--y)}
+.price{font-size:22px;font-weight:800}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--r);margin-right:6px}
+.dot.on{background:var(--g);box-shadow:0 0 8px var(--g)}
+main{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;padding:14px;max-width:1500px;margin:0 auto}
+@media(max-width:960px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px;margin-bottom:14px}
+.card h3{font-size:11px;letter-spacing:.18em;color:var(--mut);margin-bottom:10px;text-transform:uppercase}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{flex:1;padding:8px;border:1px solid var(--line);background:transparent;color:var(--mut);font-family:var(--mono);font-weight:700;cursor:pointer;transition:background-color .15s,color .15s}
+.tab.act{background:var(--y);color:#000;border-color:var(--y)}
+canvas{width:100%;height:280px;display:block;background:#0D0D0F;border:1px solid var(--line)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.kv{flex:1;min-width:110px;border:1px solid var(--line);padding:8px}
+.kv small{display:block;color:var(--mut);font-size:10px;letter-spacing:.12em}
+.kv b{font-size:15px}
+.up{color:var(--g)}.dn{color:var(--r)}.yl{color:var(--y)}.mut{color:var(--mut)}
+.btn{font-family:var(--mono);font-weight:800;border:1px solid var(--line);background:#1A1A1D;color:var(--txt);padding:10px 12px;cursor:pointer;transition:transform .1s,background-color .15s}
+.btn:active{transform:scale(.97)}
+.btn.g{background:var(--g);color:#000;border-color:var(--g)}
+.btn.r{background:var(--r);color:#fff;border-color:var(--r)}
+.btn.y{background:var(--y);color:#000;border-color:var(--y)}
+.btn.big{width:100%;padding:14px;font-size:15px;letter-spacing:.08em}
+input,select{font-family:var(--mono);background:#0D0D0F;color:var(--txt);border:1px solid var(--line);padding:7px;width:100%}
+input[type=range]{padding:0;accent-color:var(--y)}
+label{font-size:11px;color:var(--mut);display:block;margin-bottom:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sig{border:2px solid var(--line);padding:10px;flex:1;min-width:140px}
+.pos{border:2px solid var(--y);background:rgba(255,204,0,.05);padding:10px;margin-bottom:8px}
+.closebtn{width:100%;margin-top:8px;text-align:left;line-height:1.5}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-size:10px;letter-spacing:.1em}
+.pill{display:inline-block;padding:1px 6px;font-size:11px;font-weight:800}
+.pill.w{background:rgba(0,230,118,.15);color:var(--g)}.pill.l{background:rgba(255,59,48,.15);color:var(--r)}
+.note{font-size:11px;color:var(--mut);border-left:2px solid var(--y);padding-left:8px;margin-top:8px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--y);color:#000;font-weight:800;padding:10px 16px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+#toast.show{opacity:1}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{flex:1;padding:9px;background:transparent;border:0;color:var(--mut);font-family:var(--mono);font-weight:800;cursor:pointer}
+.seg button.act{background:var(--y);color:#000}
+.streak span{display:inline-block;width:18px;height:18px;margin-right:3px;text-align:center;font-size:11px;line-height:18px;font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <div class="row" style="justify-content:space-between">
+    <span><span id="dot" class="dot"></span><span id="src" class="mut">conectando…</span></span>
+    <span class="price" id="hdr-price" data-testid="btc-price">—</span>
+    <span><span class="mut">Saldo</span> <b id="hdr-bal" class="yl" data-testid="balance">—</b> <span class="mut">Total</span> <b id="hdr-eq" data-testid="equity">—</b></span>
+  </div>
+  <div id="hud" data-testid="top-hud">
+    <div class="hud-k"><small>OBJETIVO KALSHI · <span id="hud-mk">15m</span></small><b id="hud-target" data-testid="hud-target">—</b><small id="hud-tq"></small></div>
+    <div class="hud-k"><small>DIFERENCIA</small><b id="hud-diff" data-testid="hud-diff">—</b></div>
+    <div class="hud-k"><small>CIERRA EN</small><b id="hud-left" data-testid="hud-time-left">—</b></div>
+    <div class="hud-dec" id="hud-dec" data-testid="hud-bot-decision"><div><small>DECISIÓN DEL BOT</small><div id="hud-dec-v">—</div></div><div id="hud-dec-t" class="mut" style="flex:1;min-width:150px"></div></div>
+    <div class="hud-live" data-testid="hud-live"><small style="display:inline">AHORA MISMO:</small> <span id="hud-live">—</span></div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="card">
+    <div class="tabs">
+      <button class="tab act" data-d="15" data-testid="tab-15m">15 MIN</button>
+      <button class="tab" data-d="60" data-testid="tab-1h">1 HORA</button>
+    </div>
+    <canvas id="chart" data-testid="price-chart"></canvas>
+    <div class="row" style="margin-top:10px">
+      <div class="kv"><small>OBJETIVO KALSHI</small><b id="m-strike">—</b></div>
+      <div class="kv"><small>PROB. DE QUE TERMINE ARRIBA</small><b id="m-fair">—</b></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label>Objetivo exacto de Kalshi (opcional)</label><input id="tgt" type="number" step="0.01" placeholder="ej. 62613" data-testid="target-override-input"></div>
+      <div><label>&nbsp;</label><button class="btn" id="tgt-btn" style="width:100%" data-testid="target-override-btn">USAR ESTE OBJETIVO</button></div>
+    </div>
+    <div class="note">Kalshi no deja que esta app lea su objetivo directamente. Se usa el precio de BTC al abrir la ventana, que suele quedar muy cerca. Si quieres el número exacto, cópialo de la app de Kalshi ("Target Price") y pégalo aquí.</div>
+  </div>
+
+  <div class="card">
+    <h3>Apostar (simulación)</h3>
+    <div class="grid2">
+      <div><label>Monto ($)</label><input id="amt" type="number" min="0.01" step="0.01" value="1" data-testid="bet-amount-input"></div>
+      <div><label>&nbsp;</label><input id="amt-r" type="range" min="0.01" step="0.01" value="1" data-testid="bet-amount-slider"></div>
+    </div>
+    <div class="row" style="margin:8px 0">
+      <button class="btn" data-q="1" data-testid="quick-1">$1</button>
+      <button class="btn" data-q="5" data-testid="quick-5">$5</button>
+      <button class="btn" data-q="10%" data-testid="quick-10pct">10%</button>
+      <button class="btn" data-q="25%" data-testid="quick-25pct">25%</button>
+    </div>
+    <div class="grid2">
+      <button class="btn g big" id="buy-up" data-testid="bet-up-btn">▲ ARRIBA</button>
+      <button class="btn r big" id="buy-dn" data-testid="bet-down-btn">▼ ABAJO</button>
+    </div>
+    <div class="note" id="bet-preview"></div>
+    <div style="margin-top:12px">
+      <button class="btn big" id="auto-btn" data-testid="auto-24-7-btn">APOSTAR SOLO 24/7 · OFF</button>
+      <div class="row" style="margin-top:6px">
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="bm15" style="width:auto" data-testid="bot-market-15"> 15 min</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="bm60" style="width:auto" data-testid="bot-market-60"> 1 hora</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="wake" style="width:auto" data-testid="wake-lock"> Mantener pantalla encendida</label>
+      </div>
+      <div class="note" id="bot-status" data-testid="bot-status">—</div>
+      <div class="note">El bot solo funciona mientras esta página está abierta. Cuando la vuelves a abrir, la app liquida las ventanas que ya cerraron.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Posiciones abiertas</h3>
+    <div id="positions" data-testid="open-positions"></div>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <h3>Ajustes del bot (riesgo)</h3>
+    <div class="seg" style="margin-bottom:10px">
+      <button id="rm-auto" data-testid="risk-mode-auto">AUTOMÁTICO</button>
+      <button id="rm-manual" data-testid="risk-mode-manual">MANUAL</button>
+    </div>
+    <div id="auto-box" class="note" data-testid="auto-risk-summary"></div>
+    <div id="manual-box" class="grid2" style="margin-top:8px">
+      <div><label>% del saldo por apuesta</label><input data-k="stakePct" type="number" step="0.5" min="0.5" max="100" data-testid="set-stake-pct"></div>
+      <div><label>Confianza mínima %</label><input data-k="minConf" type="number" step="1" min="50" max="99" data-testid="set-min-conf"></div>
+      <div><label>Tomar ganancia (TP) % · 0=off</label><input data-k="tp" type="number" step="5" min="0" data-testid="set-tp"></div>
+      <div><label>Cortar pérdida (SL) % · 0=off</label><input data-k="sl" type="number" step="5" min="0" max="100" data-testid="set-sl"></div>
+      <div><label>Minuto de decisión</label><select data-k="lockMin" data-testid="set-lock-min"><option value="1">Minuto 1</option><option value="3">Minuto 3</option><option value="5">Minuto 5</option></select></div>
+      <div><label>Precio máx. de entrada ¢</label><input data-k="maxPrice" type="number" step="1" min="5" max="99" data-testid="set-max-price"></div>
+      <div><label>Máx. apuestas por día</label><input data-k="maxBetsDay" type="number" step="1" min="1" data-testid="set-max-bets"></div>
+      <div><label>Pausa si pierde % del día</label><input data-k="dayLossPct" type="number" step="5" min="5" max="100" data-testid="set-day-loss"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Acierto del bot</h3>
+    <table data-testid="bot-accuracy-table">
+      <tr><th></th><th>ACIERTO</th><th>APUESTAS</th><th>P/L</th></tr>
+      <tr><td>Bot automático</td><td id="acc-auto">—</td><td id="n-auto">0</td><td id="pl-auto">—</td></tr>
+      <tr><td>Manual</td><td id="acc-man">—</td><td id="n-man">0</td><td id="pl-man">—</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Decisiones del bot vs resultado</h3>
+    <p class="mut" style="margin-bottom:8px">Cada ventana el bot decide ARRIBA o ABAJO aunque no apueste. Aquí ves cuántas veces acertó.</p>
+    <table data-testid="bot-decisions-table">
+      <tr><th></th><th>15 MIN</th><th>1 HORA</th></tr>
+      <tr><td>Acierto</td><td id="da-15" data-testid="decision-acc-15">—</td><td id="da-60" data-testid="decision-acc-60">—</td></tr>
+    </table>
+    <div style="margin-top:10px"><label>Últimas 10 decisiones (pestaña actual)</label><table id="streak" data-testid="bot-decisions-list"></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Historial</h3>
+    <div style="max-height:320px;overflow:auto"><table id="hist" data-testid="history-table"></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Modo real (Kalshi)</h3>
+    <p class="mut">Sin servidor, este archivo no puede enviar órdenes reales: Kalshi pide firmar cada orden con tu clave privada y no deja que el navegador lo haga directamente. Usa la decisión del bot (arriba en la pantalla) como guía y apuesta a mano en Kalshi.</p>
+    <a class="btn y" style="display:inline-block;margin-top:8px;text-decoration:none" href="https://kalshi.com/category/crypto" target="_blank" rel="noopener" data-testid="open-kalshi-link">ABRIR KALSHI</a>
+  </div>
+
+  <div class="card">
+    <h3>Datos (guardados en este navegador)</h3>
+    <div class="grid2">
+      <div><label>Fijar saldo de simulación</label><input id="setbal" type="number" step="0.01" min="0" data-testid="set-balance-input"></div>
+      <div><label>&nbsp;</label><button class="btn" id="setbal-btn" style="width:100%" data-testid="set-balance-btn">FIJAR SALDO</button></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="exp" data-testid="export-btn">EXPORTAR</button>
+      <button class="btn" id="imp" data-testid="import-btn">IMPORTAR</button>
+      <button class="btn r" id="reset" data-testid="reset-btn">BORRAR TODO</button>
+      <input type="file" id="impf" accept=".json" style="display:none">
+    </div>
+    <div class="note">Exporta tus datos de vez en cuando. Si borras los datos del navegador, se pierden.</div>
+  </div>
+</section>
+</main>
+<div id="toast" data-testid="toast"></div>
+
+<script>
+"use strict";
+const LS="kt_terminal_v1";
+const DEF={balance:100,bets:[],shadow:[],strikes:{},ovr:{},model:{w:[0,0.25,0.15,0.2,1.1],n:0},
+  settings:{riskMode:"auto",stakePct:5,minConf:60,tp:50,sl:40,lockMin:3,maxPrice:80,maxBetsDay:20,dayLossPct:25,autoOn:false,botMarkets:{15:true,60:false},wake:false},
+  day:{date:"",startBal:100,bets:0},seq:1};
+const $=id=>document.getElementById(id);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function merge(a,b){for(const k in b){const v=b[k];if(v&&typeof v==="object"&&!Array.isArray(v)&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))merge(a[k],v);else a[k]=v;}return a;}
+function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s)return merge(clone(DEF),s);}catch(e){}return clone(DEF);}
+let S=load();
+function save(){S.bets=S.bets.slice(-600);S.shadow=S.shadow.slice(-2000);localStorage.setItem(LS,JSON.stringify(S));}
+const money=n=>(n<0?"−":"")+"$"+Math.abs(n).toFixed(2).replace(".",",");
+const smoney=n=>(n>=0?"+":"−")+"$"+Math.abs(n).toFixed(2).replace(".",",");
+const usd=n=>"$"+n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2});
+const lab=D=>D===15?"15m":"1h";
+const sideLab=s=>s==="UP"?"ARRIBA":"ABAJO";
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* ---------- Precio BTC (APIs públicas con CORS) ---------- */
+const binK=r=>r.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4]}));
+const SRC=[
+ {name:"Coinbase",kl:"https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60",tk:"https://api.exchange.coinbase.com/products/BTC-USD/ticker",pk:r=>r.map(k=>({t:k[0]*1000,l:+k[1],h:+k[2],o:+k[3],c:+k[4]})).sort((a,b)=>a.t-b.t).slice(-200),pt:r=>+r.price},
+ {name:"Binance",kl:"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=200",tk:"https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",pk:binK,pt:r=>+r.price},
+ {name:"Binance Data",kl:"https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=200",tk:"https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT",pk:binK,pt:r=>+r.price}
+];
+let srcIdx=0,candles=[],price=null,online=false;
+async function fetchJ(u){const c=new AbortController();const t=setTimeout(()=>c.abort(),6000);try{const r=await fetch(u,{signal:c.signal,cache:"no-store"});if(!r.ok)throw new Error(r.status);return await r.json();}finally{clearTimeout(t);}}
+function setOnline(v){online=v;$("dot").className="dot"+(v?" on":"");$("src").textContent=v?SRC[srcIdx].name:"sin conexión";}
+async function loadKlines(){for(let i=0;i<SRC.length;i++){const j=(srcIdx+i)%SRC.length;try{const k=SRC[j].pk(await fetchJ(SRC[j].kl));if(!k.length)throw 0;const keep=candles.length&&candles[candles.length-1].t>k[k.length-1].t?candles.filter(c=>c.t>k[k.length-1].t):[];candles=k.concat(keep);srcIdx=j;price=price||candles[candles.length-1].c;setOnline(true);return;}catch(e){}}setOnline(false);}
+async function tick(){try{const p=SRC[srcIdx].pt(await fetchJ(SRC[srcIdx].tk));if(!p)throw 0;price=p;const m=Math.floor(Date.now()/60000)*60000;const last=candles[candles.length-1];if(last){if(m>last.t){candles.push({t:m,o:last.c,h:p,l:p,c:p});if(candles.length>300)candles.shift();}else{last.c=p;last.h=Math.max(last.h,p);last.l=Math.min(last.l,p);}}setOnline(true);}catch(e){setOnline(false);srcIdx=(srcIdx+1)%SRC.length;}}
+
+/* ---------- Mercado simulado tipo Kalshi ---------- */
+const winStart=(D,t=Date.now())=>Math.floor(t/(D*60000))*D*60000;
+function Phi(x){const t=1/(1+0.2316419*Math.abs(x));const d=0.3989423*Math.exp(-x*x/2);const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function strike(D,ws){const key=D+"_"+ws;if(S.strikes[key])return S.strikes[key];const c=candles.find(k=>k.t===ws);if(c){S.strikes[key]=c.o;return c.o;}return null;}
+function finalPrice(D,ws){const we=ws+D*60000;if(Date.now()<we+2000||!candles.length)return null;if(candles[candles.length-1].t<we)return null;const c=candles.find(k=>k.t===we-60000);return c?c.c:null;}
+function sigma(){const n=Math.min(60,candles.length-1);if(n<5)return 0.0008;const a=[];for(let i=candles.length-n;i<candles.length;i++)a.push(Math.log(candles[i].c/candles[i-1].c));const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.max(0.0003,Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length));}
+function rsi(n=14){if(candles.length<n+1)return 50;let g=0,l=0;for(let i=candles.length-n;i<candles.length;i++){const d=candles[i].c-candles[i-1].c;if(d>0)g+=d;else l-=d;}return l===0?100:100-100/(1+g/l);}
+const ago=k=>candles[Math.max(0,candles.length-1-k)].c;
+function market(D){if(!price||!candles.length)return null;const ws=winStart(D),we=ws+D*60000,K=strike(D,ws);if(!K)return null;const sg=sigma(),left=Math.max(0.05,(we-Date.now())/60000);const z=Math.log(price/K)/(sg*Math.sqrt(left));const p=Phi(z),mid=Math.min(99,Math.max(1,p*100));
+  return {D,ws,we,K,P:price,sg,left,z,pFair:p,elapsed:(Date.now()-ws)/60000,yesAsk:Math.min(99,Math.ceil(mid+0.5)),yesBid:Math.max(1,Math.floor(mid-0.5)),noAsk:Math.min(99,Math.ceil(100-mid+0.5)),noBid:Math.max(1,Math.floor(100-mid-0.5))};}
+
+/* ---------- Modelo (regresión logística que aprende sola) ---------- */
+function feats(m){const c=x=>Math.max(-4,Math.min(4,x));return [1,c(Math.log(m.P/ago(5))/(m.sg*Math.sqrt(5))),c(Math.log(m.P/ago(15))/(m.sg*Math.sqrt(15))),(rsi()-50)/50,c(m.z)];}
+function predict(x){const w=S.model.w;let s=0;for(let i=0;i<w.length;i++)s+=w[i]*x[i];return 1/(1+Math.exp(-s));}
+function train(x,y){const w=S.model.w,p=predict(x);for(let i=0;i<w.length;i++)w[i]-=0.03*((p-y)*x[i]+0.001*w[i]);S.model.n++;}
+
+/* ---------- Sombra: decisión fijada en minuto 1, 3 y 5 ---------- */
+function shadowStep(){for(const D of [15,60]){const m=market(D);if(!m)continue;for(const L of [1,3,5]){if(m.elapsed<L||m.elapsed>L+1.5)continue;const key=D+"_"+m.ws+"_"+L;if(S.shadow.some(r=>r.key===key))continue;const x=feats(m),p=predict(x);S.shadow.push({key,D,ws:m.ws,L,dir:p>=0.5?"UP":"DOWN",prob:p,x,K:m.K,at:Date.now(),status:"open"});}}}
+
+/* ---------- Liquidación ---------- */
+function settleAll(){const now=Date.now();
+  for(const r of S.shadow){if(r.status!=="open")continue;const f=finalPrice(r.D,r.ws);if(f!=null){const up=f>r.K;r.final=f;r.status=(r.dir==="UP")===up?"win":"loss";train(r.x,up?1:0);}else if(now>r.ws+r.D*60000+150*60000)r.status="void";}
+  for(const b of S.bets){if(b.status!=="open")continue;const f=finalPrice(b.D,b.ws);if(f!=null){const won=(b.side==="UP")===(f>b.K);b.final=f;b.status=won?"won":"lost";const pay=won?b.contracts:0;b.pnl=pay-b.stake;S.balance+=pay;b.closedAt=now;toast(`${lab(b.D)} ${sideLab(b.side)}: ${won?"GANÓ":"PERDIÓ"} ${smoney(b.pnl)}`);}else if(now>b.ws+b.D*60000+150*60000){b.status="void";b.pnl=0;S.balance+=b.stake;b.closedAt=now;}}
+  const cut=now-3*864e5;for(const k in S.strikes){if(+k.split("_")[1]<cut){delete S.strikes[k];delete S.ovr[k];}}}
+
+/* ---------- Apuestas ---------- */
+function betValue(b){const m=market(b.D);if(!m||m.ws!==b.ws)return null;return b.contracts*(b.side==="UP"?m.yesBid:m.noBid)/100;}
+function equity(){return S.balance+S.bets.filter(b=>b.status==="open").reduce((s,b)=>{const v=betValue(b);return s+(v==null?b.stake:v);},0);}
+function place(D,side,stake,auto){const m=market(D);if(!m)return toast("Todavía no hay precio");stake=Math.floor(stake*100+1e-6)/100;
+  if(stake<0.01)return toast("Monto mínimo $0,01");if(stake>S.balance+1e-9)return toast("Saldo insuficiente");if(m.left<0.5)return toast("La ventana está por cerrar");
+  const entry=side==="UP"?m.yesAsk:m.noAsk,P=params();S.balance-=stake;
+  S.bets.push({id:S.seq++,D,ws:m.ws,side,stake,entry,contracts:stake/(entry/100),K:m.K,auto,tp:P.tp,sl:P.sl,at:Date.now(),status:"open"});S.day.bets++;save();
+  toast(`${auto?"Bot":"Tú"}: ${sideLab(side)} ${money(stake)} @ ${entry}¢ (${lab(D)})`);renderPositions(true);}
+function closeBet(id,reason){const b=S.bets.find(x=>x.id===id);if(!b||b.status!=="open")return;const v=betValue(b);if(v==null)return toast("Esperando la liquidación");S.balance+=v;b.status="closed";b.pnl=v-b.stake;b.reason=reason;b.closedAt=Date.now();save();toast(`Cerrada (${reason}) ${smoney(b.pnl)}`);renderPositions(true);}
+function riskStep(){for(const b of S.bets){if(b.status!=="open"||Date.now()-b.at<60000)continue;const v=betValue(b);if(v==null)continue;const pct=(v-b.stake)/b.stake*100;if(b.tp>0&&pct>=b.tp)closeBet(b.id,"TP");else if(b.sl>0&&pct<=-b.sl)closeBet(b.id,"SL");}}
+
+/* ---------- Ajustes de riesgo: automático o manual ---------- */
+const settled=f=>S.bets.filter(b=>["won","lost","closed"].includes(b.status)&&f(b)).sort((a,b)=>b.closedAt-a.closedAt);
+function lossStreak(){let n=0;for(const b of settled(b=>b.auto)){if(b.pnl<0)n++;else break;}return n;}
+function shadowAcc(D,L){const r=S.shadow.filter(x=>(D==null||x.D===D)&&x.L===L&&(x.status==="win"||x.status==="loss"));return {n:r.length,acc:r.length?r.filter(x=>x.status==="win").length/r.length*100:null};}
+function bestLock(){let best={L:3,acc:null,n:0};for(const L of [1,3,5]){const a=shadowAcc(null,L);if(a.n>=10&&(best.acc==null||a.acc>best.acc))best={L,acc:a.acc,n:a.n};}return best;}
+function params(){const s=S.settings;
+  if(s.riskMode==="manual")return {stakePct:s.stakePct,minConf:s.minConf,tp:s.tp,sl:s.sl,lockMin:+s.lockMin,maxPrice:s.maxPrice,maxBetsDay:s.maxBetsDay,dayLossPct:s.dayLossPct};
+  const st=lossStreak(),best=bestLock(),last=settled(b=>b.auto).slice(0,20);const acc=last.length>=8?last.filter(b=>b.pnl>0).length/last.length:null;
+  let stake=Math.max(1,5/Math.pow(2,Math.min(st,3))),conf=Math.min(75,60+st*3),maxPrice=80;
+  if(acc!=null&&acc<0.5){stake=Math.max(1,stake/2);conf=Math.min(78,conf+5);maxPrice=70;}
+  return {stakePct:+stake.toFixed(2),minConf:conf,tp:60,sl:35,lockMin:best.L,maxPrice,maxBetsDay:30,dayLossPct:20,streak:st,best,acc};}
+
+/* ---------- Bot 24/7 (mientras la página esté abierta) ---------- */
+let botMsg="Apagado";
+function dayRoll(){const dk=new Date().toLocaleDateString("sv");if(S.day.date!==dk)S.day={date:dk,startBal:equity(),bets:0};}
+function botStep(){const s=S.settings;if(!s.autoOn){botMsg="Apagado";return;}const P=params();
+  const dl=S.day.startBal>0?(S.day.startBal-equity())/S.day.startBal*100:0;
+  if(dl>=P.dayLossPct){botMsg=`Pausado: hoy va perdiendo ${dl.toFixed(0)}% (límite ${P.dayLossPct}%)`;return;}
+  if(S.day.bets>=P.maxBetsDay){botMsg="Pausado: llegó al máximo de apuestas de hoy";return;}
+  const msgs=[];
+  for(const D of [15,60]){if(!s.botMarkets[D])continue;const m=market(D);if(!m){msgs.push(lab(D)+": sin precio");continue;}
+    if(S.bets.some(b=>b.auto&&b.D===D&&b.ws===m.ws)){msgs.push(lab(D)+": ya apostó en esta ventana");continue;}
+    const r=S.shadow.find(x=>x.D===D&&x.ws===m.ws&&x.L===P.lockMin);
+    if(!r){msgs.push(`${lab(D)}: esperando el minuto ${P.lockMin}`);continue;}
+    if(m.elapsed>P.lockMin+3){msgs.push(lab(D)+": ya pasó la hora de entrar");continue;}
+    const conf=Math.max(r.prob,1-r.prob)*100;
+    if(conf<P.minConf){msgs.push(`${lab(D)}: confianza ${conf.toFixed(0)}% < ${P.minConf}%, no apuesta`);continue;}
+    const entry=r.dir==="UP"?m.yesAsk:m.noAsk;
+    if(entry>P.maxPrice){msgs.push(`${lab(D)}: precio ${entry}¢ > máx ${P.maxPrice}¢`);continue;}
+    const stake=Math.floor(S.balance*P.stakePct)/100;if(stake<0.01){msgs.push("saldo muy bajo");continue;}
+    place(D,r.dir,stake,true);msgs.push(`${lab(D)}: apostó ${sideLab(r.dir)} ${money(stake)}`);}
+  botMsg=msgs.join(" · ")||"Elige al menos un mercado (15 min / 1 hora)";}
+
+/* ---------- UI ---------- */
+let view=15;
+function drawChart(m){const cv=$("chart"),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const n=view===15?45:90,cs=candles.slice(-n);if(!cs.length)return;let lo=Math.min(...cs.map(c=>c.l)),hi=Math.max(...cs.map(c=>c.h));if(m){lo=Math.min(lo,m.K);hi=Math.max(hi,m.K);}const pad=(hi-lo)*0.08||10;lo-=pad;hi+=pad;
+  const R=62,cw=(W-R)/n,y=v=>H-(v-lo)/(hi-lo)*H;g.font="10px "+getComputedStyle(document.body).fontFamily;
+  g.strokeStyle="#1C1C20";g.fillStyle="#8A8A90";for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,yy=y(v);g.beginPath();g.moveTo(0,yy);g.lineTo(W-R,yy);g.stroke();g.fillText(Math.round(v).toLocaleString("es-ES"),W-R+4,yy+3);}
+  if(m){const i0=cs.findIndex(c=>c.t>=m.ws);if(i0>=0){g.fillStyle="rgba(255,204,0,.05)";g.fillRect(i0*cw,0,W-R-i0*cw,H);}g.setLineDash([5,4]);g.strokeStyle="#FFCC00";g.beginPath();g.moveTo(0,y(m.K));g.lineTo(W-R,y(m.K));g.stroke();g.setLineDash([]);g.fillStyle="#FFCC00";g.fillText("inicio",4,y(m.K)-4);}
+  cs.forEach((c,i)=>{const col=c.c>=c.o?"#00E676":"#FF3B30",x=i*cw+cw/2;g.strokeStyle=col;g.beginPath();g.moveTo(x,y(c.h));g.lineTo(x,y(c.l));g.stroke();g.fillStyle=col;const t=Math.min(y(c.o),y(c.c));g.fillRect(i*cw+cw*0.18,t,cw*0.64,Math.max(1,Math.abs(y(c.o)-y(c.c))));});}
+function fmtLeft(min){const s=Math.max(0,Math.round(min*60));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
+function sigHTML(dir,p){const conf=Math.max(p,1-p)*100;return `<span class="${dir==="UP"?"up":"dn"}">${dir==="UP"?"▲ ARRIBA":"▼ ABAJO"}</span> <span class="mut" style="font-size:.65em">${conf.toFixed(0)}% confianza</span>`;}
+function renderPositions(force){const open=S.bets.filter(b=>b.status==="open"),box=$("positions"),sig=open.map(b=>b.id).join(",");
+  if(force||box.dataset.sig!==sig){box.dataset.sig=sig;box.innerHTML=open.length?open.map(b=>`<div class="pos" data-testid="position-${b.id}"><div class="row" style="justify-content:space-between"><b>${lab(b.D)} · <span class="${b.side==="UP"?"up":"dn"}">${sideLab(b.side)}</span> @ ${b.entry}¢ ${b.auto?'<span class="pill w">BOT</span>':""}</b><span class="mut">TP ${b.tp||"off"}% · SL ${b.sl||"off"}%</span></div><button class="btn closebtn" data-close="${b.id}" data-testid="close-position-${b.id}"><div>CERRAR AHORA</div><div id="pl-${b.id}" style="font-weight:800"></div><div id="mx-${b.id}" class="mut" style="font-size:11px"></div></button></div>`).join(""):'<div class="mut">No hay posiciones abiertas.</div>';}
+  for(const b of open){const v=betValue(b),pl=$("pl-"+b.id),mx=$("mx-"+b.id);if(!pl)continue;
+    if(v==null){pl.textContent="ventana cerrada · liquidando…";pl.style.color="#8A8A90";}
+    else{const d=v-b.stake,pct=d/b.stake*100;pl.textContent=`${d>=0?"vas ganando +":"vas perdiendo −"}${money(Math.abs(d)).replace("−","")} (${d>=0?"+":"−"}${Math.abs(pct).toFixed(0)}% del monto)`;pl.style.color=d>=0?"#00E676":"#FF3B30";}
+    mx.textContent=`si aguantas y gana: +${money(b.contracts-b.stake)} · monto ${money(b.stake)}`;}}
+function renderStats(){const P=params(),s=S.settings;
+  const grp=a=>{const n=a.length,w=a.filter(b=>b.pnl>0).length,pl=a.reduce((x,b)=>x+b.pnl,0);return {n,acc:n?(w/n*100).toFixed(0)+"%":"—",pl:n?smoney(pl):"—",c:pl>=0?"up":"dn"};};
+  const A=grp(settled(b=>b.auto)),M=grp(settled(b=>!b.auto));
+  $("acc-auto").textContent=A.acc;$("n-auto").textContent=A.n;$("pl-auto").textContent=A.pl;$("pl-auto").className=A.c;
+  $("acc-man").textContent=M.acc;$("n-man").textContent=M.n;$("pl-man").textContent=M.pl;$("pl-man").className=M.c;
+  for(const D of [15,60]){const a=shadowAcc(D,P.lockMin);$("da-"+D).textContent=a.n?`${a.acc.toFixed(0)}% (${a.n} ventanas)`:"sin datos aún";}
+  const last=S.shadow.filter(r=>r.D===view&&r.L===P.lockMin&&(r.status==="win"||r.status==="loss")).slice(-10).reverse();
+  $("streak").innerHTML=last.length?"<tr><th>HORA</th><th>DECIDIÓ</th><th>CONF.</th><th>RESULT.</th></tr>"+last.map(r=>`<tr><td>${new Date(r.ws).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</td><td class="${r.dir==="UP"?"up":"dn"}">${r.dir==="UP"?"▲ ARRIBA":"▼ ABAJO"}</td><td>${(Math.max(r.prob,1-r.prob)*100).toFixed(0)}%</td><td><span class="pill ${r.status==="win"?"w":"l"}">${r.status==="win"?"✓ acertó":"✗ falló"}</span></td></tr>`).join(""):'<tr><td class="mut">Sin datos aún: aparecen cuando cierra cada ventana.</td></tr>';
+  const h=settled(()=>true).slice(0,40);
+  $("hist").innerHTML="<tr><th>HORA</th><th>MERC.</th><th>LADO</th><th>MONTO</th><th>RESULT.</th><th>P/L</th></tr>"+(h.length?h.map(b=>`<tr><td>${new Date(b.at).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}</td><td>${lab(b.D)}${b.auto?" ·bot":""}</td><td class="${b.side==="UP"?"up":"dn"}">${sideLab(b.side)}</td><td>${money(b.stake)}</td><td>${b.status==="won"?"ganó":b.status==="lost"?"perdió":"cerrada "+(b.reason||"")}</td><td class="${b.pnl>=0?"up":"dn"}">${smoney(b.pnl)}</td></tr>`).join(""):'<tr><td colspan="6" class="mut">Sin apuestas cerradas.</td></tr>');
+  $("rm-auto").className=s.riskMode==="auto"?"act":"";$("rm-manual").className=s.riskMode==="manual"?"act":"";
+  $("manual-box").style.display=s.riskMode==="manual"?"grid":"none";$("auto-box").style.display=s.riskMode==="auto"?"block":"none";
+  if(s.riskMode==="auto")$("auto-box").innerHTML=`El bot ajusta sus valores para perder menos:<br>· apuesta <b class="yl">${P.stakePct}%</b> del saldo (baja a la mitad con cada pérdida seguida, hoy lleva ${P.streak})<br>· solo entra con confianza ≥ <b class="yl">${P.minConf}%</b> y precio ≤ <b class="yl">${P.maxPrice}¢</b><br>· TP <b class="yl">${P.tp}%</b> · SL <b class="yl">${P.sl}%</b> · decide en el <b class="yl">minuto ${P.lockMin}</b>${P.best.n?` (el que más acierta: ${P.best.acc.toFixed(0)}% en ${P.best.n})`:" (minuto 3 hasta tener 10 datos)"}<br>· se pausa si hoy pierde ${P.dayLossPct}% o llega a ${P.maxBetsDay} apuestas${P.acc!=null&&P.acc<0.5?'<br><span class="dn">· acierto reciente bajo: modo defensivo activo</span>':""}`;}
+function render(){const m=market(view);$("hdr-price").textContent=price?usd(price):"—";$("hdr-bal").textContent=money(S.balance);const eq=equity();$("hdr-eq").textContent=money(eq);
+  drawChart(m);
+  $("hud-mk").textContent=lab(view);
+  if(m){const d=m.P-m.K,key=view+"_"+m.ws,ex=!!S.ovr[key];$("m-strike").textContent=usd(m.K)+(ex?" (exacto)":" (aprox.)");$("hud-target").textContent=usd(m.K);$("hud-tq").textContent=ex?"exacto":"aprox.";
+    $("hud-diff").innerHTML=`<span class="${d>0?"up":"dn"}">${d>0?"▲ +":"▼ "}${d.toFixed(2)}</span>`;$("hud-left").textContent=fmtLeft(m.left);$("m-fair").textContent=(m.pFair*100).toFixed(0)+"%";
+    $("buy-up").textContent=`▲ ARRIBA @ ${m.yesAsk}¢`;$("buy-dn").textContent=`▼ ABAJO @ ${m.noAsk}¢`;
+    const a=+$("amt").value||0;$("bet-preview").textContent=a>0?`Si gana: ARRIBA +${money(a/(m.yesAsk/100)-a)} · ABAJO +${money(a/(m.noAsk/100)-a)}`:"";
+    const P=params(),r=S.shadow.find(x=>x.D===view&&x.ws===m.ws&&x.L===P.lockMin);
+    if(r){const conf=Math.max(r.prob,1-r.prob)*100,entry=r.dir==="UP"?m.yesAsk:m.noAsk,ok=conf>=P.minConf&&entry<=P.maxPrice;
+      $("hud-dec-v").innerHTML=sigHTML(r.dir,r.prob);$("hud-dec").style.borderColor=r.dir==="UP"?"#00E676":"#FF3B30";
+      $("hud-dec-t").innerHTML=`decidido en el minuto ${r.L} · ${new Date(r.at).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}<br>${ok?`<span class="up">el bot SÍ apuesta</span>`:`<span class="dn">el bot NO apuesta</span> (pide ${P.minConf}% y máx ${P.maxPrice}¢; hay ${entry}¢)`}`;}
+    else{$("hud-dec-v").textContent="pensando…";$("hud-dec").style.borderColor="#26262A";$("hud-dec-t").textContent=`decide en el minuto ${P.lockMin} de la ventana`;}
+    const pl=predict(feats(m));$("hud-live").innerHTML=sigHTML(pl>=0.5?"UP":"DOWN",pl)+' <span class="mut">(cambia segundo a segundo, solo de referencia)</span>';}
+  else{$("hud-target").textContent="—";$("hud-dec-v").textContent="cargando…";}
+  $("amt-r").max=Math.max(0.01,S.balance).toFixed(2);
+  const ab=$("auto-btn");ab.textContent=`APOSTAR SOLO 24/7 · ${S.settings.autoOn?"ON":"OFF"}`;ab.className="btn big"+(S.settings.autoOn?" g":"");$("bot-status").textContent="Bot: "+botMsg;
+  renderPositions(false);renderStats();}
+
+/* ---------- Eventos ---------- */
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{view=+t.dataset.d;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("act",x===t));render();});
+$("amt").oninput=()=>{$("amt-r").value=$("amt").value;};
+$("amt-r").oninput=()=>{$("amt").value=(+$("amt-r").value).toFixed(2);};
+document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const q=b.dataset.q;const v=q.endsWith("%")?S.balance*parseFloat(q)/100:+q;$("amt").value=(Math.floor(v*100)/100).toFixed(2);$("amt-r").value=$("amt").value;});
+$("buy-up").onclick=()=>place(view,"UP",+$("amt").value,false);
+$("tgt-btn").onclick=()=>{const v=+$("tgt").value;if(!v||v<1000)return toast("Escribe el objetivo de Kalshi, ej. 62613");const ws=winStart(view),key=view+"_"+ws;S.strikes[key]=v;S.ovr[key]=true;
+  for(const x of S.shadow.concat(S.bets))if(x.D===view&&x.ws===ws&&x.status==="open")x.K=v;save();toast(`Objetivo ${lab(view)}: ${usd(v)}`);render();};
+$("buy-dn").onclick=()=>place(view,"DOWN",+$("amt").value,false);
+$("positions").addEventListener("click",e=>{const b=e.target.closest("[data-close]");if(b)closeBet(+b.dataset.close,"manual");});
+$("auto-btn").onclick=()=>{S.settings.autoOn=!S.settings.autoOn;save();botStep();render();};
+$("bm15").checked=S.settings.botMarkets[15];$("bm60").checked=S.settings.botMarkets[60];
+$("bm15").onchange=e=>{S.settings.botMarkets[15]=e.target.checked;save();};
+$("bm60").onchange=e=>{S.settings.botMarkets[60]=e.target.checked;save();};
+$("rm-auto").onclick=()=>{S.settings.riskMode="auto";save();render();};
+$("rm-manual").onclick=()=>{S.settings.riskMode="manual";save();render();};
+document.querySelectorAll("#manual-box [data-k]").forEach(i=>{i.value=S.settings[i.dataset.k];i.onchange=()=>{const v=+i.value;if(!isNaN(v)){S.settings[i.dataset.k]=v;save();render();}};});
+$("setbal").value=S.balance.toFixed(2);
+$("setbal-btn").onclick=()=>{const v=+$("setbal").value;if(isNaN(v)||v<0)return toast("Saldo no válido");S.balance=v;S.day.startBal=equity();save();toast("Saldo fijado: "+money(v));render();};
+$("exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="btc-terminal-datos-"+new Date().toISOString().slice(0,10)+".json";a.click();};
+$("imp").onclick=()=>$("impf").click();
+$("impf").onchange=async e=>{try{S=merge(clone(DEF),JSON.parse(await e.target.files[0].text()));save();toast("Datos importados");location.reload();}catch(x){toast("Archivo no válido");}};
+$("reset").onclick=()=>{if(confirm("¿Borrar todo (saldo, historial, decisiones y lo aprendido)?")){localStorage.removeItem(LS);location.reload();}};
+let wakeLock=null;
+async function applyWake(){try{if(S.settings.wake&&"wakeLock" in navigator&&document.visibilityState==="visible")wakeLock=await navigator.wakeLock.request("screen");else if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+$("wake").checked=S.settings.wake;$("wake").onchange=e=>{S.settings.wake=e.target.checked;save();applyWake();};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){loadKlines();applyWake();}});
+window.addEventListener("resize",()=>render());
+
+/* ---------- Bucle principal ---------- */
+let n=0;
+async function loop(){n++;if(n%2===0)await tick();if(n%30===0)await loadKlines();dayRoll();settleAll();shadowStep();riskStep();botStep();render();if(n%5===0)save();}
+(async()=>{await loadKlines();dayRoll();render();applyWake();setInterval(loop,1000);})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"7f7b0fd8732c4326aae4b9d58d5c514a","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
