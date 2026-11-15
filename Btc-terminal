@@ -1,0 +1,96 @@
+conectando…
+—
+Saldo — Total —
+OBJETIVO KALSHI · 15m
+—
+
+DIFERENCIA
+—
+CIERRA EN
+—
+DECISIÓN DEL BOT
+—
+
+AHORA MISMO: —
+15 MIN
+1 HORA
+
+OBJETIVO KALSHI
+—
+PROB. DE QUE TERMINE ARRIBA
+—
+Objetivo exacto de Kalshi (opcional)
+ 
+USAR ESTE OBJETIVO
+Kalshi no deja que esta app lea su objetivo directamente. Se usa el precio de BTC al abrir la ventana, que suele quedar muy cerca. Si quieres el número exacto, cópialo de la app de Kalshi ("Target Price") y pégalo aquí.
+APOSTAR (SIMULACIÓN)
+Monto ($)
+ 
+$1
+$5
+10%
+25%
+▲ ARRIBA
+▼ ABAJO
+
+APOSTAR SOLO 24/7 · OFF
+
+15 min
+
+1 hora
+
+Mantener pantalla encendida
+—
+El bot solo funciona mientras esta página está abierta. Cuando la vuelves a abrir, la app liquida las ventanas que ya cerraron.
+POSICIONES ABIERTAS
+
+AJUSTES DEL BOT (RIESGO)
+AUTOMÁTICO
+MANUAL
+
+% del saldo por apuesta
+Confianza mínima %
+Tomar ganancia (TP) % · 0=off
+Cortar pérdida (SL) % · 0=off
+Minuto de decisión
+Minuto 1Minuto 3Minuto 5
+Precio máx. de entrada ¢
+Máx. apuestas por día
+Pausa si pierde % del día
+ACIERTO DEL BOT
+
+ACIERTO
+APUESTAS
+P/L
+Bot automático
+—
+0
+—
+Manual
+—
+0
+—
+DECISIONES DEL BOT VS RESULTADO
+Cada ventana el bot decide ARRIBA o ABAJO aunque no apueste. Aquí ves cuántas veces acertó.
+
+15 MIN
+1 HORA
+Acierto
+—
+—
+Últimas 10 decisiones (pestaña actual)
+
+HISTORIAL
+
+MODO REAL (KALSHI)
+Sin servidor, este archivo no puede enviar órdenes reales: Kalshi pide firmar cada orden con tu clave privada y no deja que el navegador lo haga directamente. Usa la decisión del bot (arriba en la pantalla) como guía y apuesta a mano en Kalshi.
+ABRIR KALSHI
+DATOS (GUARDADOS EN ESTE NAVEGADOR)
+Fijar saldo de simulación
+ 
+FIJAR SALDO
+EXPORTAR
+IMPORTAR
+BORRAR TODO
+Exporta tus datos de vez en cuando. Si borras los datos del navegador, se pierden.
+
